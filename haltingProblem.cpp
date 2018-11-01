@@ -12,17 +12,26 @@ using namespace std;
 int main() {
 
     int iterador= 1;
-    char simbolo_inicial[5];
+    int numero_linhas;
+    int parametro_entrada;
 
-    scanf("%s", simbolo_inicial);
+    
     while(1){
 
-        iterador++;
-        if(scanf("%s", simbolo_inicial) != EOF){
-            cout << endl;
+        scanf("%d", numero_linhas);
+        scanf("%d", parametro_entrada);
+
+        if( numero_linhas == 0 && parametro_entrada == 0){
+
+            for ( int i = 1; i<= numero_linhas; i++) {
+                scanf("%s", );
+            }
+            
         } else {
             break;
         }
+
+        iterador++;
     }
     return 0;
 }
