@@ -18,17 +18,6 @@ int procuraENDIF( vector<string> vetor_comandos, int linha) {
     return linha;
 }
 
-int procura_RET_antes_CALL(vector<string> vetor_comandos){
-    int linha = 0;
-    while( vetor_comandos[linha].compare("RET") != 0) {
-        if( vetor_comandos[linha].compare("CALL") == 0 ) {
-            return 0;
-        }
-        linha++;
-    }
-    return 1;
-}
-
 int procura_CALL_antes_RET(vector<string> vetor_comandos){
     int linha = 0;
     int espera = -1;
@@ -47,8 +36,34 @@ int procura_CALL_antes_RET(vector<string> vetor_comandos){
     return 0;
 }
 
+/*int procura_CALL_antes_RET(vector<string> vetor_comandos){
+    int linha = 0;
+    int espera = -1;
+    while( vetor_comandos[linha].compare("RET") != 0) {
 
-map <string, int> programa(vector<string> comandos, vector<string> operadores1, vector<string> operadores2, map <string, int> registradores, int *loop){
+        if( vetor_comandos[linha].compare("CALL") == 0 ) {
+            return 1;
+        }
+        linha++;
+    }
+    return 0;
+}*/
+
+int verifica_RET_dentro_IF (vector<string> vetor_comandos, int linha) {
+    while( vetor_comandos[linha].compare("ENDIF") != 0) {
+        if (vetor_comandos[linha].compare("RET") == 0){
+            return 1;
+        }
+    }
+    return 0;
+}
+
+
+
+int programa(vector<string> comandos, vector<string> operadores1, vector<string> operadores2, int entrada, int *cont, int *loop){
+    map <string, int> registradores;
+    //cout << "Entrada: " << entrada << endl;
+    registradores["R0"] = entrada;
     registradores["R1"] = 0;
     registradores["R2"] = 0;
     registradores["R3"] = 0;
@@ -57,92 +72,58 @@ map <string, int> programa(vector<string> comandos, vector<string> operadores1, 
     registradores["R6"] = 0;
     registradores["R7"] = 0;
     registradores["R8"] = 0;
-    int r1 = 0;
-    int r2 = 0;
-    int r3 = 0;
-    int r4 = 0;
-    int r5 = 0;
-    int r6 = 0;
-    int r7 = 0;
-    int r8 = 0;
+    registradores["R9"] = 0;
+    int valor_saida = 0;
 
-
-    int entrada;
 
     //cout << registradores["QCALLS"] << endl;
     //cout << "loop>: " << registradores["LOOP"] << endl;
 
-    if (*loop == 1) {
-        return registradores;
-    } else {
-
         for ( int i = 0; i< comandos.size(); i++) {
-
+            //cout << i << endl;
             //cout << "comandos: " << comandos[i] << endl;
+
             string operador1 = operadores1[i];
             string operador2 = operadores2[i];
+            //cout << "CONT: " << *cont << endl;
             if (comandos[i].compare("CALL") == 0) {
                 //cout << "CALL operador1: " << operador1 << endl;
-                registradores["Q" + operador1]++;
+                //*cont++;
                 //cout << "Q" << operador1 << ": " << registradores["Q" +operador1] << endl;
 
-                    entrada = registradores["R0"];
-                    r1 = registradores["R1"];
-                    r2 = registradores["R2"];
-                    r3 = registradores["R3"];
-                    r4 = registradores["R4"];
-                    r5 = registradores["R5"];
-                    r6 = registradores["R6"];
-                    r7 = registradores["R7"];
-                    r8 = registradores["R8"];
-                    if (operador1[0] == 'R') {
-                        registradores["R0"] = registradores[operador1];
-                    } else {
-                        registradores["R0"] =  atoi (operador1.c_str() );
-                        entrada = atoi (operador1.c_str() );
-                    }
-                    //cout << "R0: " << registradores["R0"] << endl;
-                    registradores["QCALLS"]++;
-                    //cout << "quantidade_calls: "<< registradores["QCALLS"]  << endl;
-                    //cout << "R0 ida: " << registradores["R0"] << endl;
+                if (operador1[0] == 'R') {
+                    entrada = registradores[operador1];
+                } else {
+                    entrada =  atoi (operador1.c_str() );
+                }
+                //cout << "R0: " << registradores["R0"] << endl;
+                //cout << "quantidade_calls: "<< registradores["QCALLS"]  << endl;
+                //cout << "R0 ida: " << registradores["R0"] << endl;
+                //cout << "Entrada ida: " << entrada << endl;
+                valor_saida = programa(comandos, operadores1, operadores2, entrada, cont, loop);
+                //cout << "valor saida: " << valor_saida << endl;
+                registradores["R9"] = valor_saida;
+                
             
-                    registradores = programa(comandos, operadores1, operadores2, registradores, loop);
-                    registradores["R0"] = entrada;
-                    registradores["R1"] = r1;
-                    registradores["R2"] = r2;
-                    registradores["R3"] = r3;
-                    registradores["R4"] = r4;
-                    registradores["R5"] = r5;
-                    registradores["R6"] = r6;
-                    registradores["R7"] = r7;
-                    registradores["R8"] = r8;
-            
-            
+                
             } else {
                 if (comandos[i].compare("RET") == 0){
                     //cout << "RET operador1: " << operador1 << endl;
                     //cout << "atoi:  " << atoi (operador1.c_str() ) << endl;
+                    int saida;
                     if (operador1[0] == 'R') {
-                        registradores["R9"] = registradores[operador1];
+                        saida = registradores[operador1];
                     } else {
                         //cout << "atoi:  " << atoi (operador1.c_str() ) << endl;
-                        registradores["R9"] =  atoi (operador1.c_str() );
+                        saida =  atoi (operador1.c_str() );
                     }
                     //cout << "R9: " << registradores["R9"] << endl;
                     
-                    registradores["R1"] = 0;
-                    registradores["R2"] = 0;
-                    registradores["R3"] = 0;
-                    registradores["R4"] = 0;
-                    registradores["R5"] = 0;
-                    registradores["R6"] = 0;
-                    registradores["R7"] = 0;
-                    registradores["R8"] = 0;
                     //cout << "R0 volta: " << registradores["R0"] << endl;
                     //cout << "R9 volta: " << registradores["R9"] << endl;
-                    i =  comandos.size();
                     //cout << "RET loop>: " << registradores["LOOP"] << endl;
-                    return registradores;
+                    i = comandos.size();
+                    return saida;
                 } else {
                     if (comandos[i].compare("MOV") == 0) {
                         //cout << "--------------------" << endl;
@@ -246,7 +227,6 @@ map <string, int> programa(vector<string> comandos, vector<string> operadores1, 
                                         } else {
                                             int valor1; 
                                             int valor2;
-                                            int linha;
                                             if (operador1[0] == 'R'){
                                                 valor1 = registradores[operador1];
                                             } else {
@@ -263,21 +243,32 @@ map <string, int> programa(vector<string> comandos, vector<string> operadores1, 
                                                 //cout << "IFEQ operador2: " << operador2 << endl;
                                                 //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
                                                 //cout << "REGISTRADOR " << operador2 << ": " << registradores[operador2] << endl;
+                                                /*if (verifica_RET_dentro_IF(vetor_comandos, i) == 1) {
+                                                    int linha = i;
+                                                    *loop = 1;
+                                                    for( int j = i; j < comandos.size(); j++) {
+                                                        if ( valor1 > valor2) {
+                                                            while (vetor_comandos[j].compare("CALL") != 0) {
+                                                                if (vetor_comandos[j].compare("SUB") == 0 && operadores1[j] == registradores[operador1]) {
+                                                                    *loop = 0;
+                                                                }
+                                                            }
+                                                        } else {
+                                                            if ( valor1 < valor2) {
+                                                                while (vetor_comandos[j].compare("CALL") != 0) {
+                                                                    if ((vetor_comandos[j].compare("ADD") == 0 || vetor_comandos[j].compare("MUL") == 0) && (operadores1[j] == registradores[operador1])) {
+                                                                        *loop = 0;
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }  
+                                                }*/
+                                                
+
                                                 if (valor1 != valor2){
                                                     i = procuraENDIF(comandos, i);
-                                                } else {
-                                                    linha = i;
-                                                    while( comandos[linha].compare("ENDIF") != 0) {
-                                                        //cout << "Operadores1[linha]: "<< operadores1[linha] << endl; 
-                                                        //cout << "operador1: " << operador1 << endl;
-                                                        if ((comandos[linha].compare("CALL") == 0) && (operador1.compare(operadores1[linha]) == 0) ){
-                                                            *loop = 1;
-                                                            return registradores;
-                                                        }
-                                                        linha++;
-
-                                                     }
-                                                }       
+                                                }                                            
                                                 //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
                                             } else {
                                                 if (comandos[i].compare("IFNEQ") == 0) {
@@ -286,19 +277,7 @@ map <string, int> programa(vector<string> comandos, vector<string> operadores1, 
                                                     //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
                                                     if (valor1 == valor2){
                                                         i = procuraENDIF(comandos, i);
-                                                    } else {
-                                                        linha = i;
-                                                        while( comandos[linha].compare("ENDIF") != 0) {
-                                                            //cout << "Operadores1[linha]: "<< operadores1[linha] << endl; 
-                                                            //cout << "operador1: " << operador1 << endl;
-                                                            if ((comandos[linha].compare("CALL") == 0) && (operador1.compare(operadores1[linha]) == 0) ){
-                                                                *loop = 1;
-                                                                return registradores;
-                                                            }
-                                                            linha++;
-
-                                                         }
-                                                    }       
+                                                    }
                                                     //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
                                                 } else {
                                                     if (comandos[i].compare("IFG") == 0) {
@@ -307,19 +286,7 @@ map <string, int> programa(vector<string> comandos, vector<string> operadores1, 
                                                         //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
                                                         if (valor1 <= valor2){
                                                             i = procuraENDIF(comandos, i);
-                                                        } else {
-                                                            linha = i;
-                                                            while( comandos[linha].compare("ENDIF") != 0) {
-                                                                //cout << "Operadores1[linha]: "<< operadores1[linha] << endl; 
-                                                                //cout << "operador1: " << operador1 << endl;
-                                                                if ((comandos[linha].compare("CALL") == 0) && (operador1.compare(operadores1[linha]) == 0) ){
-                                                                    *loop = 1;
-                                                                    return registradores;
-                                                                }
-                                                                linha++;
-
-                                                             }
-                                                        }       
+                                                        }
                                                         //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
                                                     } else {
                                                         if (comandos[i].compare("IFL") == 0) {
@@ -328,19 +295,7 @@ map <string, int> programa(vector<string> comandos, vector<string> operadores1, 
                                                             //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
                                                             if (valor1 >= valor2){
                                                                 i = procuraENDIF(comandos, i);
-                                                            } else {
-                                                                linha = i;
-                                                                while( comandos[linha].compare("ENDIF") != 0) {
-                                                                    //cout << "Operadores1[linha]: "<< operadores1[linha] << endl; 
-                                                                    //cout << "operador1: " << operador1 << endl;
-                                                                    if ((comandos[linha].compare("CALL") == 0) && (operador1.compare(operadores1[linha]) == 0) ){
-                                                                        *loop = 1;
-                                                                        return registradores;
-                                                                    }
-                                                                    linha++;
-
-                                                                 }
-                                                            }       
+                                                            }
                                                             //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
                                                         } else {
                                                             if (comandos[i].compare("IFGE") == 0) {
@@ -349,19 +304,7 @@ map <string, int> programa(vector<string> comandos, vector<string> operadores1, 
                                                                 //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
                                                                 if (valor1 < valor2){
                                                                     i = procuraENDIF(comandos, i);
-                                                                } else {
-                                                                    linha = i;
-                                                                    while( comandos[linha].compare("ENDIF") != 0) {
-                                                                        //cout << "Operadores1[linha]: "<< operadores1[linha] << endl; 
-                                                                        //cout << "operador1: " << operador1 << endl;
-                                                                        if ((comandos[linha].compare("CALL") == 0) && (operador1.compare(operadores1[linha]) == 0) ){
-                                                                            *loop = 1;
-                                                                            return registradores;
-                                                                        }
-                                                                        linha++;
-
-                                                                     }
-                                                                }       
+                                                                }
                                                                 //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
                                                             } else {
                                                                 if (comandos[i].compare("IFLE") == 0) {
@@ -370,19 +313,7 @@ map <string, int> programa(vector<string> comandos, vector<string> operadores1, 
                                                                     //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
                                                                     if (valor1 > valor2){
                                                                         i = procuraENDIF(comandos, i);
-                                                                    } else {
-                                                                        linha = i;
-                                                                        while( comandos[linha].compare("ENDIF") != 0) {
-                                                                            //cout << "Operadores1[linha]: "<< operadores1[linha] << endl; 
-                                                                            //cout << "operador1: " << operador1 << endl;
-                                                                            if ((comandos[linha].compare("CALL") == 0) && (operador1.compare(operadores1[linha]) == 0) ){
-                                                                                *loop = 1;
-                                                                                return registradores;
-                                                                            }
-                                                                            linha++;
-
-                                                                         }
-                                                                    }       
+                                                                    }
                                                                     //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
                                                                 }
                                                             }
@@ -399,8 +330,6 @@ map <string, int> programa(vector<string> comandos, vector<string> operadores1, 
                 }
             }
         }
-    }
-    return registradores;
 }
 
 int main() {
@@ -479,41 +408,21 @@ int main() {
                 cout << "operador2: " << operadores2[iterador_palavras] << endl;
             }*/
 
-
-            //inicio do algoritmo
-            map <string, int> registradores;
-            registradores["R0"] = parametro_entrada;
-            registradores["LOOP"] = 0;
-            registradores["QCALLS"] = 0;
-            registradores["QR0"] = 0;
-            registradores["QR1"] = 0;
-            registradores["QR2"] = 0;
-            registradores["QR3"] = 0;
-            registradores["QR4"] = 0;
-            registradores["QR5"] = 0;
-            registradores["QR6"] = 0;
-            registradores["QR7"] = 0;
-            registradores["QR8"] = 0;
-            registradores["QR9"] = 0;
-            int loop = 0;
             if (procura_CALL_antes_RET(comandos) == 1) {
-                cout << iterador << ": " << "*" << endl; 
+                cout << iterador << ": " << "**" << endl; 
             } else {
 
             //inicio do algoritmo
                 int cont = 0;
                 int loop = 0;
-                int qcalls = 0;
-                //cout << &qcalls << endl;
-                registradores = programa(comandos, operadores1, operadores2, registradores, &loop);
+                int result = programa(comandos, operadores1, operadores2, parametro_entrada, &cont, &loop);
                 if ( loop == 1){
                     cout << iterador << ": " << "*" << endl;
                 } else {
-                    cout << iterador << ": " << registradores["R9"] << endl;
+                    cout << iterador << ": " << result << endl;
                 
                 }
             }
-
         }
         iterador++;
     }
