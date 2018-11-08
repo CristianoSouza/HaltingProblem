@@ -60,7 +60,7 @@ int verifica_RET_dentro_IF (vector<string> vetor_comandos, int linha) {
 
 
 
-int programa(vector<string> comandos, vector<string> operadores1, vector<string> operadores2, int entrada, int *loop, int *qcalls){
+int programa(vector<string> comandos, vector<string> operadores1, vector<string> operadores2, int entrada, int *loop, int cache[1000], int *qcalls){
     map <string, int> registradores;
     //cout << "Entrada: " << entrada << endl;
     int entrada_proxima_chamada;
@@ -85,12 +85,12 @@ int programa(vector<string> comandos, vector<string> operadores1, vector<string>
         for ( int i = 0; i< comandos.size(); i++) {
             //cout << i << endl;
             //cout << "comandos: " << comandos[i] << endl;
-            cout << "call:  " << *qcalls << endl;
+            //cout << "call:  " << *qcalls << endl;
             string operador1 = operadores1[i];
             string operador2 = operadores2[i];
             //cout << "CONT: " << *cont << endl;
             if (comandos[i].compare("CALL") == 0) {
-                cout << "CALL operador1: " << operador1 << endl;
+                //cout << "CALL operador1: " << operador1 << endl;
                 *qcalls = *qcalls + 1;
                 //cout << "Q" << operador1 << ": " << registradores["Q" +operador1] << endl;
                 //cout << "QCALLS: " << *qcalls << endl;
@@ -110,7 +110,15 @@ int programa(vector<string> comandos, vector<string> operadores1, vector<string>
                 //cout << "quantidade_calls: "<< registradores["QCALLS"]  << endl;
                 //cout << "R0 ida: " << registradores["R0"] << endl;
                 //cout << "Entrada ida: " << entrada_proxima_chamada << endl;
-                valor_saida = programa(comandos, operadores1, operadores2, entrada_proxima_chamada, loop, qcalls);
+
+                if(cache[entrada_proxima_chamada] != 0) {
+                    valor_saida = cache[entrada_proxima_chamada];
+                    //cout << "cache: " << cache[entrada_proxima_chamada] << endl;
+                } else {
+                    valor_saida = programa(comandos, operadores1, operadores2, entrada_proxima_chamada, loop, cache, qcalls);
+                    cache[entrada_proxima_chamada] = valor_saida;
+                }
+                
                 //cout << "valor saida: " << valor_saida << endl;
                 registradores["R9"] = valor_saida;
                 
@@ -128,7 +136,7 @@ int programa(vector<string> comandos, vector<string> operadores1, vector<string>
                     
                     
                     registradores["R9"] = saida;
-                    cout << "R9 saida: " << registradores["R9"] << endl;
+                    //cout << "R9 saida: " << registradores["R9"] << endl;
                     //cout << "saida volta: " << saida << endl;
                     //i = comandos.size();
                     *qcalls = *qcalls - 1;
@@ -149,11 +157,11 @@ int programa(vector<string> comandos, vector<string> operadores1, vector<string>
                     } else {
                         if (comandos[i].compare("ADD") == 0) {
                             //cout << "--------------------" << endl;
-                            cout << "ADD operador1: " << operador1 << endl;
-                            cout << "ADD operador2: " << operador2 << endl;
-                            cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
+                            //cout << "ADD operador1: " << operador1 << endl;
+                            //cout << "ADD operador2: " << operador2 << endl;
+                            //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
                             if (operador2[0] == 'R') {
-                                cout << "REGISTRADOR " << operador2 << ": " << registradores[operador2] << endl;
+                                //cout << "REGISTRADOR " << operador2 << ": " << registradores[operador2] << endl;
                                 registradores[operador1] = registradores[operador1] + registradores[operador2];
                             } else {
                                 registradores[operador1] = registradores[operador1] + atoi (operador2.c_str() );
@@ -161,15 +169,15 @@ int programa(vector<string> comandos, vector<string> operadores1, vector<string>
                             if (registradores[operador1] > 999){
                                 registradores[operador1] = registradores[operador1] % 1000;
                             }
-                            cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
+                            //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
                         } else {
                             if (comandos[i].compare("SUB") == 0) {
                                 //cout << "--------------------" << endl;
-                                cout << "SUB operador1: " << operador1 << endl;
-                                cout << "SUB operador2: " << operador2 << endl;
-                                cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
+                                //cout << "SUB operador1: " << operador1 << endl;
+                                //cout << "SUB operador2: " << operador2 << endl;
+                                //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
                                 if (operador2[0] == 'R') {
-                                    cout << "REGISTRADOR " << operador2 << ": " << registradores[operador2] << endl;
+                                    //cout << "REGISTRADOR " << operador2 << ": " << registradores[operador2] << endl;
                                     registradores[operador1] = registradores[operador1] - registradores[operador2];
                                 } else {
                                     registradores[operador1] = registradores[operador1] - atoi (operador2.c_str() );
@@ -177,7 +185,7 @@ int programa(vector<string> comandos, vector<string> operadores1, vector<string>
                                 if (registradores[operador1] < 0){
                                     registradores[operador1] = (registradores[operador1] % 1000) + 1000;
                                 }
-                                cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
+                                //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
                             } else {
                                 if (comandos[i].compare("MUL") == 0) {
                                     //cout << "MUL operador1: " << operador1 << endl;
@@ -357,10 +365,10 @@ int programa(vector<string> comandos, vector<string> operadores1, vector<string>
                                                                 //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
                                                             } else {
                                                                 if (comandos[i].compare("IFLE") == 0) {
-                                                                    cout << "IFLE operador1: " << operador1 << endl;
-                                                                    cout << "IFLE operador2: " << operador2 << endl;
-                                                                    cout << "valor1: " << valor1 << endl;
-                                                                    cout << "valor2: " << valor2 << endl; 
+                                                                    //cout << "IFLE operador1: " << operador1 << endl;
+                                                                    //cout << "IFLE operador2: " << operador2 << endl;
+                                                                    //cout << "valor1: " << valor1 << endl;
+                                                                    //cout << "valor2: " << valor2 << endl; 
                                                                     //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
                                                                     if (valor1 > valor2){
                                                                         i = procuraENDIF(comandos, i);
@@ -471,19 +479,26 @@ int main() {
             }*/
 
             if (procura_CALL_antes_RET(comandos) == 1) {
-                cout << iterador << ": " << "*" << endl; 
+                //cout << iterador << ": " << "*" << endl; 
+                cout << "*" << endl;
             } else {
 
             //inicio do algoritmo
                 int cont = 0;
                 int loop = 0;
                 int qcalls = 0;
+                int cache[1000];
+                for(int j= 0; j <= 999; j++) {
+                    cache[j] = 0;
+                }
                 //cout << &qcalls << endl;
-                int result = programa(comandos, operadores1, operadores2, parametro_entrada, &loop, &qcalls);
+                int result = programa(comandos, operadores1, operadores2, parametro_entrada, &loop, cache, &qcalls);
                 if ( loop == 1){
-                    cout << iterador << ": " << "*" << endl;
+                    //cout << iterador << ": " << "*" << endl;
+                    cout << "*" << endl;
                 } else {
-                    cout << iterador << ": " << result << endl;
+                    //cout << iterador << ": " << result << endl;
+                    cout << result << endl;
                 
                 }
             }
