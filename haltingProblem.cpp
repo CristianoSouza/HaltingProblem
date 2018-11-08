@@ -10,25 +10,16 @@ using std::string;
 using std::getline;
 using namespace std;
 
+//funcao para descobrir a linha de fim de um IF
 int procuraENDIF( vector<string> vetor_comandos, int linha) {
-    
     while( vetor_comandos[linha].compare("ENDIF") != 0) {
         linha++;
     }
     return linha;
 }
 
-int procura_RET_antes_CALL(vector<string> vetor_comandos){
-    int linha = 0;
-    while( vetor_comandos[linha].compare("RET") != 0) {
-        if( vetor_comandos[linha].compare("CALL") == 0 ) {
-            return 0;
-        }
-        linha++;
-    }
-    return 1;
-}
-
+//funcao para percorrer vetor de comandos verificando se existe algum CALL antes do primeiro RET
+//não considera os CALLs dentro de IFs
 int procura_CALL_antes_RET(vector<string> vetor_comandos){
     int linha = 0;
     int espera = -1;
@@ -48,7 +39,14 @@ int procura_CALL_antes_RET(vector<string> vetor_comandos){
 }
 
 
-map <string, int> programa(vector<string> comandos, vector<string> operadores1, vector<string> operadores2, map <string, int> registradores, int *loop){
+int programa(vector<string> comandos, vector<string> operadores1, vector<string> operadores2, int entrada, int *loop, int cache[1000]){
+    //cria estrura dos registradores
+    map <string, int> registradores;
+    int entrada_proxima_chamada;
+
+    //inicializa o registrador R0 com a entrada passada por parametro
+    registradores["R0"] = entrada;
+    //inicializa os demais registradores com 0
     registradores["R1"] = 0;
     registradores["R2"] = 0;
     registradores["R3"] = 0;
@@ -57,333 +55,279 @@ map <string, int> programa(vector<string> comandos, vector<string> operadores1, 
     registradores["R6"] = 0;
     registradores["R7"] = 0;
     registradores["R8"] = 0;
-    int r1 = 0;
-    int r2 = 0;
-    int r3 = 0;
-    int r4 = 0;
-    int r5 = 0;
-    int r6 = 0;
-    int r7 = 0;
-    int r8 = 0;
+    registradores["R9"] = 0;
+    int valor_saida = 0;
 
-
-    int entrada;
-
-    //cout << registradores["QCALLS"] << endl;
-    //cout << "loop>: " << registradores["LOOP"] << endl;
-
+    //se ja foi detectado um loop infinito entao retorna 
     if (*loop == 1) {
-        return registradores;
+        return 0;
     } else {
-
+        //caso contrario executa o programa
+        //loop para percorrer o vetor de comandos
         for ( int i = 0; i< comandos.size(); i++) {
-
-            //cout << "comandos: " << comandos[i] << endl;
+            
             string operador1 = operadores1[i];
             string operador2 = operadores2[i];
-            if (comandos[i].compare("CALL") == 0) {
-                //cout << "CALL operador1: " << operador1 << endl;
-                registradores["Q" + operador1]++;
-                //cout << "Q" << operador1 << ": " << registradores["Q" +operador1] << endl;
 
-                    entrada = registradores["R0"];
-                    r1 = registradores["R1"];
-                    r2 = registradores["R2"];
-                    r3 = registradores["R3"];
-                    r4 = registradores["R4"];
-                    r5 = registradores["R5"];
-                    r6 = registradores["R6"];
-                    r7 = registradores["R7"];
-                    r8 = registradores["R8"];
-                    if (operador1[0] == 'R') {
-                        registradores["R0"] = registradores[operador1];
-                    } else {
-                        registradores["R0"] =  atoi (operador1.c_str() );
-                        entrada = atoi (operador1.c_str() );
-                    }
-                    //cout << "R0: " << registradores["R0"] << endl;
-                    registradores["QCALLS"]++;
-                    //cout << "quantidade_calls: "<< registradores["QCALLS"]  << endl;
-                    //cout << "R0 ida: " << registradores["R0"] << endl;
-            
-                    registradores = programa(comandos, operadores1, operadores2, registradores, loop);
-                    registradores["R0"] = entrada;
-                    registradores["R1"] = r1;
-                    registradores["R2"] = r2;
-                    registradores["R3"] = r3;
-                    registradores["R4"] = r4;
-                    registradores["R5"] = r5;
-                    registradores["R6"] = r6;
-                    registradores["R7"] = r7;
-                    registradores["R8"] = r8;
-            
-            
-            } else {
-                if (comandos[i].compare("RET") == 0){
-                    //cout << "RET operador1: " << operador1 << endl;
-                    //cout << "atoi:  " << atoi (operador1.c_str() ) << endl;
-                    if (operador1[0] == 'R') {
-                        registradores["R9"] = registradores[operador1];
-                    } else {
-                        //cout << "atoi:  " << atoi (operador1.c_str() ) << endl;
-                        registradores["R9"] =  atoi (operador1.c_str() );
-                    }
-                    //cout << "R9: " << registradores["R9"] << endl;
-                    
-                    registradores["R1"] = 0;
-                    registradores["R2"] = 0;
-                    registradores["R3"] = 0;
-                    registradores["R4"] = 0;
-                    registradores["R5"] = 0;
-                    registradores["R6"] = 0;
-                    registradores["R7"] = 0;
-                    registradores["R8"] = 0;
-                    //cout << "R0 volta: " << registradores["R0"] << endl;
-                    //cout << "R9 volta: " << registradores["R9"] << endl;
-                    i =  comandos.size();
-                    //cout << "RET loop>: " << registradores["LOOP"] << endl;
-                    return registradores;
+            //compara o comando com "CALL"
+            if (comandos[i].compare("CALL") == 0) {
+
+                //verifica se operador é registrador ou valor 
+                if (operador1[0] == 'R') {
+                    entrada_proxima_chamada = registradores[operador1];
                 } else {
+                    entrada_proxima_chamada =  atoi (operador1.c_str() );
+                }
+
+                //verifica se ja existe uma resposta armazenada em cache para esse subproblema
+                if(cache[entrada_proxima_chamada] != 0) {
+                    //caso ja existe resposta, a saida sera a resposta armazenada na cache
+                    valor_saida = cache[entrada_proxima_chamada];
+                } else {
+                    //caso contrario, realiza-se a execução do subproblema
+                    valor_saida = programa(comandos, operadores1, operadores2, entrada_proxima_chamada, loop, cache);
+                    //saida obtida com a execucao do subproblema é armazenada na cache
+                    cache[entrada_proxima_chamada] = valor_saida;
+                }
+                
+                //atribui o valor de saida para o registrador R9
+                registradores["R9"] = valor_saida;
+                
+            } else {
+                //compara o comando com "RET"
+                if (comandos[i].compare("RET") == 0){
+                    int saida;
+                    //verifica se operador é registrador ou valor 
+                    if (operador1[0] == 'R') {
+                        saida = registradores[operador1];
+                    } else {
+                        saida =  atoi (operador1.c_str() );
+                    }
+                    
+                    //retorna o valor
+                    return saida;
+                } else {
+                    //compara o comando com "MOV"
                     if (comandos[i].compare("MOV") == 0) {
-                        //cout << "--------------------" << endl;
-                        //cout << "MOV operador1: " << operador1 << endl;
-                        //cout << "MOV operador2: " << operador2 << endl;
-                        //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
+                        //verifica se operador2 é registrador ou valor 
                         if (operador2[0] == 'R') {
-                            //cout << "REGISTRADOR " << operador2 << ": " << registradores[operador2] << endl;
                             registradores[operador1] = registradores[operador2];
                         } else {
                             registradores[operador1] = atoi (operador2.c_str() );
                         }
-                        //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
                     } else {
+                        //compara o comando com "ADD"
                         if (comandos[i].compare("ADD") == 0) {
-                            //cout << "--------------------" << endl;
-                            //cout << "ADD operador1: " << operador1 << endl;
-                            //cout << "ADD operador2: " << operador2 << endl;
-                            //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
+                            //verifica se operador2 é registrador ou valor 
                             if (operador2[0] == 'R') {
-                                //cout << "REGISTRADOR " << operador2 << ": " << registradores[operador2] << endl;
                                 registradores[operador1] = registradores[operador1] + registradores[operador2];
                             } else {
                                 registradores[operador1] = registradores[operador1] + atoi (operador2.c_str() );
                             }
+
+                            //verificação para limitar os valores entre 0 e 999
                             if (registradores[operador1] > 999){
                                 registradores[operador1] = registradores[operador1] % 1000;
                             }
-                            //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
                         } else {
+                            //compara o comando com "SUB"
                             if (comandos[i].compare("SUB") == 0) {
-                                //cout << "--------------------" << endl;
-                                //cout << "SUB operador1: " << operador1 << endl;
-                                //cout << "SUB operador2: " << operador2 << endl;
-                                //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
+                                //verifica se operador2 é registrador ou valor 
                                 if (operador2[0] == 'R') {
-                                    //cout << "REGISTRADOR " << operador2 << ": " << registradores[operador2] << endl;
                                     registradores[operador1] = registradores[operador1] - registradores[operador2];
                                 } else {
                                     registradores[operador1] = registradores[operador1] - atoi (operador2.c_str() );
                                 }
+
+                                //verificação para limitar os valores entre 0 e 999
                                 if (registradores[operador1] < 0){
                                     registradores[operador1] = (registradores[operador1] % 1000) + 1000;
                                 }
-                                //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
                             } else {
+                                //compara o comando com "MUL"
                                 if (comandos[i].compare("MUL") == 0) {
-                                    //cout << "MUL operador1: " << operador1 << endl;
-                                    //cout << "MUL operador2: " << operador2 << endl;
-                                    //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
+                                    //verifica se operador2 é registrador ou valor 
                                     if (operador2[0] == 'R') {
-                                        //cout << "REGISTRADOR " << operador2 << ": " << registradores[operador2] << endl;
                                         registradores[operador1] = registradores[operador1] * registradores[operador2];
                                     } else {
                                         registradores[operador1] = registradores[operador1] * atoi (operador2.c_str() );
                                     }
+                                    //verificação para limitar os valores entre 0 e 999
                                     if (registradores[operador1] > 999){
                                         registradores[operador1] = registradores[operador1] % 1000;
                                     }
-                                    //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
                                 } else {
+                                    //compara o comando com "DIV"
                                     if (comandos[i].compare("DIV") == 0) {
-                                        //cout << "DIV operador1: " << operador1 << endl;
-                                        //cout << "DIV operador2: " << operador2 << endl;
-                                        //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
+                                        //verifica se operador2 é registrador ou valor 
                                         if (operador2[0] == 'R') {
+                                            //verifica se valor do operador2 é diferente de zero
                                             if (registradores[operador2] != 0 ) {
-                                               //cout << "REGISTRADOR " << operador2 << ": " << registradores[operador2] << endl;
                                                 registradores[operador1] = registradores[operador1] / registradores[operador2];
                                             } else {
+                                                //caso contrario atribui 0 ao registrador correspondente ao operador1
                                                 registradores[operador1] = 0;
                                             }
                                         } else {
+                                            //verifica se valor do operador2 é diferente de zero
                                             if (atoi (operador2.c_str()) != 0) {
                                                 registradores[operador1] = registradores[operador1] / atoi (operador2.c_str() );
                                             } else {
+                                                //caso contrario atribui 0 ao registrador correspondente ao operador1
                                                 registradores[operador1] = 0;
                                             }
                                         }
-                                        //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
                                     } else {
+                                        //compara o comando com "MOD"
                                         if (comandos[i].compare("MOD") == 0) {
-                                            //cout << "MOD operador1: " << operador1 << endl;
-                                            //cout << "MOD operador2: " << operador2 << endl;
-                                            //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
+                                            //verifica se operador2 é registrador ou valor 
                                             if (operador2[0] == 'R') {
-                                                //cout << "REGISTRADOR " << operador2 << ": " << registradores[operador2] << endl;
+                                                //verifica se valor do operador2 é diferente de zero
                                                 if (registradores[operador2] != 0 ) {
                                                     registradores[operador1] = registradores[operador1] % registradores[operador2];
                                                 } else {
+                                                    //caso contrario atribui 0 ao registrador correspondente ao operador1
                                                     registradores[operador1] = 0;
                                                 }
                                             } else {
+                                                //verifica se valor do operador2 é diferente de zero
                                                 if (atoi (operador2.c_str()) != 0) {
                                                     registradores[operador1] = registradores[operador1] % atoi (operador2.c_str() );
                                                 } else {
+                                                    //caso contrario atribui 0 ao registrador correspondente ao operador1
                                                     registradores[operador1] = 0;
                                                 }
                                             }
-                                            //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
                                         } else {
-                                            int valor1; 
-                                            int valor2;
-                                            int linha;
+                                            int valor1, valor2, linha; 
+
+                                            //para os demais comandos,armazena os valores dos operadores 1 e 2 em valor1 e valor2
+                                            //verifica se operador1 é registrador ou valor 
                                             if (operador1[0] == 'R'){
                                                 valor1 = registradores[operador1];
                                             } else {
                                                 valor1 = atoi (operador1.c_str() );
                                             }
+                                            //verifica se operador2 é registrador ou valor 
                                             if (operador2[0] == 'R'){
                                                 valor2 = registradores[operador2];
                                             } else {
                                                 valor2 = atoi (operador2.c_str() );
                                             }
 
+                                            //compara o comando com "IFEQ"
                                             if (comandos[i].compare("IFEQ") == 0) {
-                                                //cout << "IFEQ operador1: " << operador1 << endl;
-                                                //cout << "IFEQ operador2: " << operador2 << endl;
-                                                //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
-                                                //cout << "REGISTRADOR " << operador2 << ": " << registradores[operador2] << endl;
+                                                
+                                                //se valores forem diferentes pula pra linha seguinte ao ENDIF
                                                 if (valor1 != valor2){
                                                     i = procuraENDIF(comandos, i);
                                                 } else {
                                                     linha = i;
                                                     while( comandos[linha].compare("ENDIF") != 0) {
-                                                        //cout << "Operadores1[linha]: "<< operadores1[linha] << endl; 
-                                                        //cout << "operador1: " << operador1 << endl;
+                                                        //procura CALL dentro do IFEQ que passa como parametro o mesmo valor usado na comparação do IFEQ
                                                         if ((comandos[linha].compare("CALL") == 0) && (operador1.compare(operadores1[linha]) == 0) ){
+                                                            //detectou loop infinito 
                                                             *loop = 1;
-                                                            return registradores;
+                                                            return 0;
                                                         }
                                                         linha++;
-
                                                      }
-                                                }       
-                                                //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
+                                                }                       
                                             } else {
+                                                //compara o comando com "IFNEQ"
                                                 if (comandos[i].compare("IFNEQ") == 0) {
-                                                    //cout << "IFNEQ operador1: " << operador1 << endl;
-                                                    //cout << "IFNEQ operador2: " << operador2 << endl;
-                                                    //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
+                                                    //se valores forem iguais pula pra linha seguinte ao ENDIF
                                                     if (valor1 == valor2){
                                                         i = procuraENDIF(comandos, i);
                                                     } else {
                                                         linha = i;
                                                         while( comandos[linha].compare("ENDIF") != 0) {
-                                                            //cout << "Operadores1[linha]: "<< operadores1[linha] << endl; 
-                                                            //cout << "operador1: " << operador1 << endl;
+                                                            //procura CALL dentro do IFNEQ que passa como parametro o mesmo valor usado na comparação do IFNEQ
                                                             if ((comandos[linha].compare("CALL") == 0) && (operador1.compare(operadores1[linha]) == 0) ){
+                                                                //detectou loop infinito 
                                                                 *loop = 1;
-                                                                return registradores;
+                                                                return 0;
                                                             }
                                                             linha++;
 
-                                                         }
-                                                    }       
-                                                    //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
+                                                        }
+                                                    }    
                                                 } else {
+                                                    //compara o comando com "IFG"
                                                     if (comandos[i].compare("IFG") == 0) {
-                                                        //cout << "IFG operador1: " << operador1 << endl;
-                                                        //cout << "IFG operador2: " << operador2 << endl;
-                                                        //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
+                                                        //se o valor1 for menor ou igual ao valor2, pula pra linha seguinte ao ENDIF
                                                         if (valor1 <= valor2){
                                                             i = procuraENDIF(comandos, i);
                                                         } else {
                                                             linha = i;
                                                             while( comandos[linha].compare("ENDIF") != 0) {
-                                                                //cout << "Operadores1[linha]: "<< operadores1[linha] << endl; 
-                                                                //cout << "operador1: " << operador1 << endl;
+                                                                //procura CALL dentro do IFG que passa como parametro o mesmo valor usado na comparação do IFG
                                                                 if ((comandos[linha].compare("CALL") == 0) && (operador1.compare(operadores1[linha]) == 0) ){
+                                                                    //detectou loop infinito 
                                                                     *loop = 1;
-                                                                    return registradores;
+                                                                    return 0;
                                                                 }
                                                                 linha++;
 
-                                                             }
-                                                        }       
-                                                        //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
+                                                            }
+                                                        }    
                                                     } else {
+                                                        //compara o comando com "IFL"
                                                         if (comandos[i].compare("IFL") == 0) {
-                                                            //cout << "IFL operador1: " << operador1 << endl;
-                                                            //cout << "IFL operador2: " << operador2 << endl;
-                                                            //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
+                                                            //se o valor1 for maior ou igual ao valor2, pula pra linha seguinte ao ENDIF
                                                             if (valor1 >= valor2){
                                                                 i = procuraENDIF(comandos, i);
                                                             } else {
                                                                 linha = i;
                                                                 while( comandos[linha].compare("ENDIF") != 0) {
-                                                                    //cout << "Operadores1[linha]: "<< operadores1[linha] << endl; 
-                                                                    //cout << "operador1: " << operador1 << endl;
+                                                                    //procura CALL dentro do IFL que passa como parametro o mesmo valor usado na comparação do IFL
                                                                     if ((comandos[linha].compare("CALL") == 0) && (operador1.compare(operadores1[linha]) == 0) ){
+                                                                        //detectou loop infinito 
                                                                         *loop = 1;
-                                                                        return registradores;
+                                                                        return 0;
                                                                     }
                                                                     linha++;
 
-                                                                 }
-                                                            }       
-                                                            //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
+                                                                }
+                                                            }    
                                                         } else {
+                                                            //compara o comando com "IFGE"
                                                             if (comandos[i].compare("IFGE") == 0) {
-                                                                //cout << "IFGE operador1: " << operador1 << endl;
-                                                                //cout << "IFGE operador2: " << operador2 << endl;
-                                                                //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
+                                                                //se o valor1 for menor ao valor2, pula pra linha seguinte ao ENDIF
                                                                 if (valor1 < valor2){
                                                                     i = procuraENDIF(comandos, i);
                                                                 } else {
                                                                     linha = i;
                                                                     while( comandos[linha].compare("ENDIF") != 0) {
-                                                                        //cout << "Operadores1[linha]: "<< operadores1[linha] << endl; 
-                                                                        //cout << "operador1: " << operador1 << endl;
+                                                                        //procura CALL dentro do IFGE que passa como parametro o mesmo valor usado na comparação do IFGE
                                                                         if ((comandos[linha].compare("CALL") == 0) && (operador1.compare(operadores1[linha]) == 0) ){
+                                                                            //detectou loop infinito 
                                                                             *loop = 1;
-                                                                            return registradores;
+                                                                            return 0;
                                                                         }
                                                                         linha++;
 
-                                                                     }
-                                                                }       
-                                                                //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
+                                                                    }
+                                                                }    
                                                             } else {
+                                                                //compara o comando com "IFLE"
                                                                 if (comandos[i].compare("IFLE") == 0) {
-                                                                    //cout << "IFLE operador1: " << operador1 << endl;
-                                                                    //cout << "IFLE operador2: " << operador2 << endl;
-                                                                    //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
+                                                                    //se o valor1 for maior ou igual ao valor2, pula pra linha seguinte ao ENDIF
                                                                     if (valor1 > valor2){
                                                                         i = procuraENDIF(comandos, i);
                                                                     } else {
                                                                         linha = i;
                                                                         while( comandos[linha].compare("ENDIF") != 0) {
-                                                                            //cout << "Operadores1[linha]: "<< operadores1[linha] << endl; 
-                                                                            //cout << "operador1: " << operador1 << endl;
+                                                                            //procura CALL dentro do IFLE que passa como parametro o mesmo valor usado na comparação do IFLE
                                                                             if ((comandos[linha].compare("CALL") == 0) && (operador1.compare(operadores1[linha]) == 0) ){
+                                                                                //detectou loop infinito 
                                                                                 *loop = 1;
-                                                                                return registradores;
+                                                                                return 0;
                                                                             }
                                                                             linha++;
 
-                                                                         }
-                                                                    }       
-                                                                    //cout << "REGISTRADOR " << operador1 << ": " << registradores[operador1] << endl;
+                                                                        }
+                                                                    }    
                                                                 }
                                                             }
                                                         }
@@ -400,21 +344,20 @@ map <string, int> programa(vector<string> comandos, vector<string> operadores1, 
             }
         }
     }
-    return registradores;
 }
+
+
 
 int main() {
 
     int iterador= 1;
     int numero_linhas;
     int parametro_entrada;
-    int R0, R1, R2, R3, R4, R5, R6, R7, R8, R9;
     char comando[5], operador[8];
     string operador1, operador2;
-    int quantidade_calls = 0;
     
     while(1){
-        //cout<< "INSTANCIA " << iterador << endl;
+        //ler numero de linhas e parametro de entrada do caso de teste
         scanf("%i", &numero_linhas);
         scanf("%i", &parametro_entrada);
 
@@ -430,15 +373,15 @@ int main() {
             for ( int i = 1; i<= numero_linhas; i++) {
 
                 scanf(" %s", &comando);
-
-                //cout << "linha: " << comando << endl;
                 comandos.push_back(comando);
 
+                //caso nao seja o comando ENDIF, sera lido os operadores
                 if (strcmp(comando, "ENDIF") != 0) {
                     scanf(" %s", &operador);
-                    //cout << "operador = " << operador << endl;
+                    
                     int tamanho_operador = strlen(operador);
 
+                    //caso o terceiro caracter nao for "," significa q comando só tem um operador
                     if(operador[2] != ',') {
                         operador1 = "";
                         int i = 0; 
@@ -446,10 +389,10 @@ int main() {
                             operador1 += operador[i];
                             i++;
                         }
-                        //cout << "operador1 = " << operador1 << endl;
                         operadores1.push_back(operador1);
                         operadores2.push_back("*");
                     } else {
+                        //caso contrario le dois operadores
                         operador1 = "";
                         operador2 = "";
                         int i = 0;  
@@ -462,8 +405,6 @@ int main() {
                             operador2 += operador[i];
                             i++;
                         }
-                        //cout << "operador1 = " << operador1 << endl;
-                        //cout << "operador2 = " << operador2 << endl;
                         operadores1.push_back(operador1);
                         operadores2.push_back(operador2);
                     }
@@ -473,47 +414,27 @@ int main() {
                 }
             }
 
-            /*for (int iterador_palavras=0; iterador_palavras < comandos.size(); iterador_palavras++) {
-                cout << "comandos: " << comandos[iterador_palavras] << endl;
-                cout << "operador1: " << operadores1[iterador_palavras] << endl;
-                cout << "operador2: " << operadores2[iterador_palavras] << endl;
-            }*/
-
-
-            //inicio do algoritmo
-            map <string, int> registradores;
-            registradores["R0"] = parametro_entrada;
-            registradores["LOOP"] = 0;
-            registradores["QCALLS"] = 0;
-            registradores["QR0"] = 0;
-            registradores["QR1"] = 0;
-            registradores["QR2"] = 0;
-            registradores["QR3"] = 0;
-            registradores["QR4"] = 0;
-            registradores["QR5"] = 0;
-            registradores["QR6"] = 0;
-            registradores["QR7"] = 0;
-            registradores["QR8"] = 0;
-            registradores["QR9"] = 0;
-            int loop = 0;
+            //funcao para verificar se existe um CALL antes do primeiro RET
             if (procura_CALL_antes_RET(comandos) == 1) {
-                cout << iterador << ": " << "*" << endl; 
+                cout << "*" << endl;
             } else {
-
-            //inicio do algoritmo
-                int cont = 0;
+                //inicializa a flag utilizada para marcar se o algoritmo estra em loop infinito ((loop = 1 = loop infinito), (loop = 0 = algoritmo para))
                 int loop = 0;
-                int qcalls = 0;
-                //cout << &qcalls << endl;
-                registradores = programa(comandos, operadores1, operadores2, registradores, &loop);
+                int cache[1000];
+
+                //loop para inicializar a tabela cache com zeros
+                for(int j= 0; j <= 999; j++) {
+                    cache[j] = 0;
+                }
+                //realiza a chamada principal ao programa, passando a entrada informada na primeira linha como parametro
+                int result = programa(comandos, operadores1, operadores2, parametro_entrada, &loop, cache);
                 if ( loop == 1){
-                    cout << iterador << ": " << "*" << endl;
+                    cout << "*" << endl;
                 } else {
-                    cout << iterador << ": " << registradores["R9"] << endl;
+                    cout << result << endl;
                 
                 }
             }
-
         }
         iterador++;
     }
