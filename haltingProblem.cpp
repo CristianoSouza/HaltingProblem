@@ -71,14 +71,12 @@ int programa(vector<string> comandos, vector<string> operadores1, vector<string>
 
             //compara o comando com "CALL"
             if (comandos[i].compare("CALL") == 0) {
-
                 //verifica se operador é registrador ou valor 
                 if (operador1[0] == 'R') {
                     entrada_proxima_chamada = registradores[operador1];
                 } else {
                     entrada_proxima_chamada =  atoi (operador1.c_str() );
                 }
-
                 //verifica se ja existe uma resposta armazenada em cache para esse subproblema
                 if(cache[entrada_proxima_chamada] != 0) {
                     //caso ja existe resposta, a saida sera a resposta armazenada na cache
@@ -89,10 +87,8 @@ int programa(vector<string> comandos, vector<string> operadores1, vector<string>
                     //saida obtida com a execucao do subproblema é armazenada na cache
                     cache[entrada_proxima_chamada] = valor_saida;
                 }
-                
                 //atribui o valor de saida para o registrador R9
                 registradores["R9"] = valor_saida;
-                
             } else {
                 //compara o comando com "RET"
                 if (comandos[i].compare("RET") == 0){
@@ -103,7 +99,6 @@ int programa(vector<string> comandos, vector<string> operadores1, vector<string>
                     } else {
                         saida =  atoi (operador1.c_str() );
                     }
-                    
                     //retorna o valor
                     return saida;
                 } else {
