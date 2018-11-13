@@ -38,25 +38,12 @@ int procura_CALL_antes_RET(vector<string> vetor_comandos){
     return 0;
 }
 
-int procura_modificacao_no_registrador_antes_if(vector<string> vetor_comandos, vector<string> operadores1, int linha, string registrador) {
-    int i= 0;
-    while (i <= linha) {
-        if( vetor_comandos[i].compare("MOV") == 0 || vetor_comandos[i].compare("ADD") == 0 || vetor_comandos[i].compare("SUB") == 0 || vetor_comandos[i].compare("MUL") == 0) {
-            if(operadores1[i].compare(registrador) == 0){
-                return 1;
-            }
-        }
-        i++;
-    }
-    return 0;
-}
-
 
 int programa(vector<string> comandos, vector<string> operadores1, vector<string> operadores2, int entrada, int *loop, int cache[1000]){
     //cria estrura dos registradores
     map <string, int> registradores;
     int entrada_proxima_chamada;
-    int primeiro_if = 0;
+
     //inicializa o registrador R0 com a entrada passada por parametro
     registradores["R0"] = entrada;
     //inicializa os demais registradores com 0
@@ -224,7 +211,8 @@ int programa(vector<string> comandos, vector<string> operadores1, vector<string>
                                             }
 
                                             //compara o comando com "IFEQ"
-                                            if (comandos[i].compare("IFEQ") == 0) {      
+                                            if (comandos[i].compare("IFEQ") == 0) {
+                                                
                                                 //se valores forem diferentes pula pra linha seguinte ao ENDIF
                                                 if (valor1 != valor2){
                                                     i = procuraENDIF(comandos, i);
@@ -234,15 +222,11 @@ int programa(vector<string> comandos, vector<string> operadores1, vector<string>
                                                         //procura CALL dentro do IFEQ que passa como parametro o mesmo valor usado na comparação do IFEQ
                                                         if ((comandos[linha].compare("CALL") == 0) && (operador1.compare(operadores1[linha]) == 0) ){
                                                             //detectou loop infinito 
-                                                            if (procura_modificacao_no_registrador_antes_if(comandos, operadores1, linha, operador1) == 0) {
-                                                                
-                                                                *loop = 1;
-                                                                return 0;
-                                                            }
+                                                            *loop = 1;
+                                                            return 0;
                                                         }
                                                         linha++;
-                                                    }
-                                                    
+                                                     }
                                                 }                       
                                             } else {
                                                 //compara o comando com "IFNEQ"
@@ -253,16 +237,14 @@ int programa(vector<string> comandos, vector<string> operadores1, vector<string>
                                                     } else {
                                                         linha = i;
                                                         while( comandos[linha].compare("ENDIF") != 0) {
-                                                            //procura CALL dentro do IFEQ que passa como parametro o mesmo valor usado na comparação do IFEQ
+                                                            //procura CALL dentro do IFNEQ que passa como parametro o mesmo valor usado na comparação do IFNEQ
                                                             if ((comandos[linha].compare("CALL") == 0) && (operador1.compare(operadores1[linha]) == 0) ){
                                                                 //detectou loop infinito 
-                                                                if (procura_modificacao_no_registrador_antes_if(comandos, operadores1, linha, operador1) == 0) {
-                                                                    
-                                                                    *loop = 1;
-                                                                    return 0;
-                                                                }
+                                                                *loop = 1;
+                                                                return 0;
                                                             }
                                                             linha++;
+
                                                         }
                                                     }    
                                                 } else {
@@ -274,16 +256,14 @@ int programa(vector<string> comandos, vector<string> operadores1, vector<string>
                                                         } else {
                                                             linha = i;
                                                             while( comandos[linha].compare("ENDIF") != 0) {
-                                                                //procura CALL dentro do IFEQ que passa como parametro o mesmo valor usado na comparação do IFEQ
+                                                                //procura CALL dentro do IFG que passa como parametro o mesmo valor usado na comparação do IFG
                                                                 if ((comandos[linha].compare("CALL") == 0) && (operador1.compare(operadores1[linha]) == 0) ){
                                                                     //detectou loop infinito 
-                                                                    if (procura_modificacao_no_registrador_antes_if(comandos, operadores1, linha, operador1) == 0) {
-                                                                        
-                                                                        *loop = 1;
-                                                                        return 0;
-                                                                    }
+                                                                    *loop = 1;
+                                                                    return 0;
                                                                 }
                                                                 linha++;
+
                                                             }
                                                         }    
                                                     } else {
@@ -295,16 +275,14 @@ int programa(vector<string> comandos, vector<string> operadores1, vector<string>
                                                             } else {
                                                                 linha = i;
                                                                 while( comandos[linha].compare("ENDIF") != 0) {
-                                                                    //procura CALL dentro do IFEQ que passa como parametro o mesmo valor usado na comparação do IFEQ
+                                                                    //procura CALL dentro do IFL que passa como parametro o mesmo valor usado na comparação do IFL
                                                                     if ((comandos[linha].compare("CALL") == 0) && (operador1.compare(operadores1[linha]) == 0) ){
                                                                         //detectou loop infinito 
-                                                                        if (procura_modificacao_no_registrador_antes_if(comandos, operadores1, linha, operador1) == 0) {
-                                                                            
-                                                                            *loop = 1;
-                                                                            return 0;
-                                                                        }
+                                                                        *loop = 1;
+                                                                        return 0;
                                                                     }
                                                                     linha++;
+
                                                                 }
                                                             }    
                                                         } else {
@@ -316,16 +294,14 @@ int programa(vector<string> comandos, vector<string> operadores1, vector<string>
                                                                 } else {
                                                                     linha = i;
                                                                     while( comandos[linha].compare("ENDIF") != 0) {
-                                                                        //procura CALL dentro do IFEQ que passa como parametro o mesmo valor usado na comparação do IFEQ
+                                                                        //procura CALL dentro do IFGE que passa como parametro o mesmo valor usado na comparação do IFGE
                                                                         if ((comandos[linha].compare("CALL") == 0) && (operador1.compare(operadores1[linha]) == 0) ){
                                                                             //detectou loop infinito 
-                                                                            if (procura_modificacao_no_registrador_antes_if(comandos, operadores1, linha, operador1) == 0) {
-                                                                                
-                                                                                *loop = 1;
-                                                                                return 0;
-                                                                            }
+                                                                            *loop = 1;
+                                                                            return 0;
                                                                         }
                                                                         linha++;
+
                                                                     }
                                                                 }    
                                                             } else {
@@ -337,16 +313,14 @@ int programa(vector<string> comandos, vector<string> operadores1, vector<string>
                                                                     } else {
                                                                         linha = i;
                                                                         while( comandos[linha].compare("ENDIF") != 0) {
-                                                                            //procura CALL dentro do IFEQ que passa como parametro o mesmo valor usado na comparação do IFEQ
+                                                                            //procura CALL dentro do IFLE que passa como parametro o mesmo valor usado na comparação do IFLE
                                                                             if ((comandos[linha].compare("CALL") == 0) && (operador1.compare(operadores1[linha]) == 0) ){
                                                                                 //detectou loop infinito 
-                                                                                if (procura_modificacao_no_registrador_antes_if(comandos, operadores1, linha, operador1) == 0) {
-                                                                                    
-                                                                                    *loop = 1;
-                                                                                    return 0;
-                                                                                }
+                                                                                *loop = 1;
+                                                                                return 0;
                                                                             }
                                                                             linha++;
+
                                                                         }
                                                                     }    
                                                                 }
